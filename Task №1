@@ -1,0 +1,76 @@
+# Библиотеки
+import requests
+from bs4 import BeautifulSoup
+from translate import Translator
+import re
+import json
+import os
+
+# Фуннкции
+
+# Получение содержимого страницы, возвращение объекта BeautifulSoup
+def get_soup_from_url(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    return BeautifulSoup(response.content, 'html.parser')
+# Очистка текста от лишних символов
+def clear_text(text):
+    text = re.sub(r'\[\d+\]', '', text)
+    text = re.sub(r'\(FAA: .+?\)', '', text)
+    return text.strip()
+# Извлечение данных из таблицы, возравщение их в словарь
+def extract_data_from_table(table):
+    data_dict = {}
+    translator = Translator(to_lang="ru")
+    for row in table.find_all('tr'):
+        columns = row.find_all('td')
+        if len(columns) < 3:
+            continue
+        code = clear_text(columns[0].get_text())
+        location = clear_text(columns[2].get_text())
+        translated_location = translator.translate(location)
+        data_dict[code] = f"{location}, {translated_location}"
+    return data_dict
+# Сохранение данных в формате JSON
+def save_data_to_json(data, filename):
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+# Загрузка данных из JSON файла
+def load_data_from_json(filename):
+    with open(filename, "r", encoding="utf-8") as f:
+        return json.load(f)
+# Нахождение ключа по значению
+def find_key_by_value(value, data_dict):
+    for key, combined_value in data_dict.items():
+        value1, value2 = combined_value.split(', ')
+        if value == value1 or value == value2:
+            return key, value1, value2
+    return None, None, None
+
+# Основа программы
+if __name__ == "__main__":
+    FILENAME = "data.json"
+
+# Проверка на сущестования файла
+    if not os.path.exists(FILENAME):
+        URL = 'https://en.wikipedia.org/wiki/List_of_airports_by_IATA_airport_code:_P'
+        soup = get_soup_from_url(URL)
+        table = soup.find('table')
+        data = extract_data_from_table(table)
+        print(data)
+        save_data_to_json(data, FILENAME)
+    else:
+        print(f"Файл {FILENAME} уже существует.")
+    data_dict = load_data_from_json(FILENAME)
+
+    while True:
+        print ("Введите значение (название) аэропорта:")
+        user_input = input(
+            "Примеры ввода: 'Международный аэропорт Paris-Charles de Gaulle (если находится за границей), 'Международный аэропорт Пермь (аэропорт Большое Савино),(если аэропорт находится в России)'. Для выхода нажмите 'Enter' ")
+        if not user_input:
+            break
+        key, value1, value2 = find_key_by_value(user_input, data_dict)
+        if key:
+            print(f"Ключ: {key}\nЗначение 1: {value1}\nЗначение 2: {value2}\n")
+        else:
+            print("Значение не найдено.\n")
