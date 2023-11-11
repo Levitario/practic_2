@@ -1,0 +1,79 @@
+ Библиотеки
+import json
+
+# Функции
+
+# Открыть файл с данными
+def load_tasks():
+    try:
+        with open('tasks.json', 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        return []
+# Сохранение значений в файл
+def save_tasks(tasks):
+    with open('tasks.json', 'w') as file:
+        json.dump(tasks, file, indent=4)
+# Добавление значений в файл
+def add_task(tasks, task, category):
+    tasks.append({'task': task, 'completed': False, 'category': category})
+# Отметка о выполнении задачи
+def mark_task_completed(tasks, task_index):
+    tasks[task_index]['completed'] = True
+# Поиск задач
+def search_tasks(tasks, query):
+    return [task for task in tasks if query in task['task']]
+# Категория задач
+def tasks_in_category(tasks, category):
+    return [task for task in tasks if task['category'] == category]
+
+# Основной код
+tasks = load_tasks()
+while True:
+    print("\nМеню:")
+    print("1. Добавить задачу")
+    print("2. Отметить задачу выполненной")
+    print("3. Поиск по задачам")
+    print("4. Вывод всех задач в категории")
+    print("5. Вывести все задачи")
+    print("6. Выход")
+
+    choice = input("Введите номер операции: ")
+    if choice == "1":
+        task_description = input("Введите описание задачи: ")
+        task_category = input("Введите категорию задачи (начните с #): ")
+        add_task(tasks, task_description, task_category)
+    elif choice == "2":
+        for i, task in enumerate(tasks):
+            status = "[x]" if task['completed'] else "[ ]"
+            print(f"{i}. {status} {task['task']} {task['category']}")
+
+        task_index = int(input("Введите номер задачи, которую хотите отметить выполненной: "))
+        mark_task_completed(tasks, task_index)
+
+    elif choice == "3":
+        query = input("Введите текст для поиска: ")
+        results = search_tasks(tasks, query)
+        for task in results:
+            status = "[x]" if task['completed'] else "[ ]"
+            print(f"{status} {task['task']} {task['category']}")
+
+    elif choice == "4":
+        category = input("Введите категорию для вывода задач: ")
+        results = tasks_in_category(tasks, category)
+        for task in results:
+            status = "[x]" if task['completed'] else "[ ]"
+            print(f"{status} {task['task']} {task['category']}")
+
+    elif choice == "5":
+        for task in tasks:
+            status = "[x]" if task['completed'] else "[ ]"
+            print(f"{status} {task['task']} {task['category']}")
+
+    elif choice == "6":
+        save_tasks(tasks)
+        print("Задачи сохранены. До свидания!")
+        break
+
+if __name__ == "__main__":
+    main()
