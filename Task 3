@@ -1,0 +1,81 @@
+# Бибилиотеки
+import json
+import os
+
+# Файл для сохранения данных
+data_file = 'budget_data.json'
+
+# Загрузка данных из файла
+def load_data():
+    if os.path.exists(data_file):
+        with open(data_file, 'r') as file:
+            return json.load(file)
+    else:
+        return {}
+
+# Сохранение данных в файл
+def save_data(data):
+    with open(data_file, 'w') as file:
+        json.dump(data, file, indent=4)
+
+# Добавление операции
+def add_operation(data, category, amount, description):
+    if category not in data:
+        data[category] = []
+    data[category].append({'amount': amount, 'description': description})
+
+# Вывод аналитики по категориям
+def show_statistics(data):
+    for category, operations in data.items():
+        total = sum(op['amount'] for op in operations)
+        print(f'Категория {category}: Всего {"доход(ов)" if total >= 0 else "расход(ов)"} {total} руб.')
+
+# Установка лимита на категорию
+def set_limit(data, category, limit):
+    if 'limits' not in data:
+        data['limits'] = {}
+    data['limits'][category] = limit
+
+# Проверка превышения лимита
+def check_limits(data):
+    if 'limits' in data:
+        for category, limit in data['limits'].items():
+            if category in data:
+                total = sum(op['amount'] for op in data[category])
+                if total < -limit:
+                    print(f'Внимание! Лимит по категории {category} превышен: {total} из {limit}')
+
+# Основной цикл программы
+def main():
+    data = load_data()
+
+    while True:
+        print("\nДоступные команды: add, stat, limit, exit")
+        command = input("Введите команду: ").strip()
+
+        if command == 'add':
+            category = input("Введите категорию: ")
+            amount = float(input("Введите сумму (отрицательную для расхода, положительную для дохода): "))
+            description = input("Введите описание: ")
+            add_operation(data, category, amount, description)
+            save_data(data)
+
+        elif command == 'stat':
+            show_statistics(data)
+
+        elif command == 'limit':
+            category = input("Введите категорию для установки лимита: ")
+            limit = float(input("Введите лимит: "))
+            set_limit(data, category, limit)
+            save_data(data)
+
+        elif command == 'exit':
+            break
+
+        else:
+            print("Неизвестная команда!")
+
+        check_limits(data)
+
+if __name__ == "__main__":
+    main()
